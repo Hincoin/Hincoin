@@ -49,7 +49,7 @@ bool fTxIndex = false;
 bool nHincoinUsingStochasticUpdate = false;
 unsigned int nCoinCacheSize = 5000;
 int64 nChainStartTime = 1389306217; // Line: 2815
-int64 nHincoinStochasticStartTime = 1393790436; // enter time here
+int64 nHincoinStochasticStartTime = 1393792836; // enter time here
 int64 nHincoinLastStochasticUpdate = 1; // last time stochastic update performed
 int64 nHincoinTwoWeeksTime = 1209600;
 double nHincoinRetargetN = 0.0;
@@ -1298,14 +1298,16 @@ unsigned int static GetNextWorkRequired_V2(const CBlockIndex* pindexLast, const 
 double calculateAverageTimeDiff(const CBlockIndex* pindexLast, int64 MaxBlocksToAnalyze, int64 expectedTimeInSeconds)
 {
     const CBlockIndex* BlockReading = pindexLast;
+    const CBlockIndex* BlockReadingPrev = pindexLast->pprev;
     int i = 0;
     double avg = 0.0;
-    for(i = 1; BlockReading && BlockReading->nHeight != 0; ++i)
+    for(i = 1; BlockReading && BlockReadingPrev && BlockReading->nHeight != 0; ++i)
     {
         if(i >= MaxBlocksToAnalyze)
             break;
-        avg += BlockReading->GetBlockTime();
+        avg +=( BlockReading->GetBlockTime() - BlockReadingPrev->GetBlockTime());
         BlockReading = BlockReading->pprev;
+        BlockReadingPrev = BlockReadingPrev->pprev;
     }
     avg /= (i * expectedTimeInSeconds);
     return avg;
