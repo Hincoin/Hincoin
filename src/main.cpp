@@ -47,9 +47,10 @@ bool fReindex = false;
 bool fBenchmark = false;
 bool fTxIndex = false;
 bool nHincoinUsingStochasticUpdate = false;
+bool nHincoinStochasticGateAllow = false;
 unsigned int nCoinCacheSize = 5000;
 int64 nChainStartTime = 1389306217; // Line: 2815
-int64 nHincoinStochasticStartTime = 1393797000; // enter time here
+int64 nHincoinStochasticStartTime = 1393800900; // enter time here
 int64 nHincoinLastStochasticUpdate = 1; // last time stochastic update performed
 int64 nHincoinTwoWeeksTime = 1209600;
 double nHincoinRetargetN = 0.0;
@@ -1347,6 +1348,7 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
              nHincoinRetargetN = (double)((int)GetNfactor(pindexLast->nTime));
              nHincoinUsingStochasticUpdate = true;   
              printf("stochastic update started!\n");
+             nHincoinStochasticGateAllow  = true;
     }
         /*
         int DiffMode = 1; // legacy diff-mode
@@ -1360,10 +1362,16 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
         if                (DiffMode == 1) { return GetNextWorkRequired_V1(pindexLast, pblock); } //legacy diff mode
         else if        (DiffMode == 2) { return GetNextWorkRequired_V2(pindexLast, pblock); } // KGW
        */
-    if(nHincoinUsingStochasticUpdate && ( (pindexLast->nTime - nHincoinStochasticStartTime < nHincoinTwoWeeksTime) || (pindexLast->nTime - nHincoinLastStochasticUpdate >= nHincoinTwoWeeksTime) ))
+    if(pindexLast->nTime - nHincoinLastStochasticUpdate >= nHincoinTwoWeeksTime)
+    {
+        nHincoinStochasticGateAllow = true;
+        nHincoinLastStochasticUpdate = pindexLast->nTime;
+    }
+    if(nHincoinUsingStochasticUpdate && nHincoinStochasticGateAllow)
     {
         updateN(pindexLast);
         nHincoinLastStochasticUpdate = pindexLast->nTime;
+        nHincoinStochasticGateAllow = false;
     }
     
     return GetNextWorkRequired_V2(pindexLast, pblock); // KGW
