@@ -1,0 +1,6 @@
+hincoin-qt usr/bin
+share/pixmaps/hincoin32.xpm usr/share/pixmaps
+share/pixmaps/hincoin16.xpm usr/share/pixmaps
+share/pixmaps/hincoin128.png usr/share/pixmaps
+debian/hincoin-qt.desktop usr/share/applications
+debian/hincoin-qt.protocol usr/share/kde4/services/

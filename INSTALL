@@ -1,0 +1,12 @@
+Building hincoin
+
+See doc/readme-qt.rst for instructions on building hincoin-Qt,
+the intended-for-end-users, nice-graphical-interface, reference
+implementation of hincoin.
+
+See doc/build-*.txt for instructions on building hincoind,
+the intended-for-services, no-graphical-interface, reference
+implementation of hincoin.
+
+Further build information and documentation is available at
+the official hincoin website, http://www.hincoin.org

@@ -1,0 +1,33 @@
+#!/usr/bin/make -f
+# -*- mode: makefile; coding: utf-8 -*-
+
+#DEB_MAKE_CHECK_TARGET = test_hincoin
+#build/hincoind::
+#	$(if $(filter nocheck,$(DEB_BUILD_OPTIONS)),,src/test_hincoin)
+
+DEB_INSTALL_EXAMPLES_hincoind += debian/examples/*
+DEB_INSTALL_MANPAGES_hincoind += debian/manpages/*
+
+%:
+	dh --with bash-completion $@
+
+override_dh_auto_build:
+	cd src; $(MAKE) -f makefile.unix hincoind
+	$(MAKE)
+
+override_dh_auto_clean:
+	if [ -f Makefile ]; then $(MAKE) clean; else rm -rf build/; rm -f hincoin-qt; fi
+	cd src; $(MAKE) -f makefile.unix clean
+
+override_dh_auto_configure:
+	qmake hincoin-qt.pro USE_QRCODE=1
+
+override_dh_auto_test:
+	cd src; $(MAKE) -f makefile.unix test_hincoin
+	src/test_hincoin
+
+# Ensure wrapper is set executable
+binary-post-install/hincoind:
+	chmod +x $(cdbs_curdestdir)usr/bin/hincoind
+binary-post-install/hincoin-qt:
+	chmod +x $(cdbs_curdestdir)usr/bin/hincoin-qt
