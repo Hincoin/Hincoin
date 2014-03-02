@@ -46,9 +46,13 @@ bool fImporting = false;
 bool fReindex = false;
 bool fBenchmark = false;
 bool fTxIndex = false;
+bool nHincoinUsingStochasticUpdate = false;
 unsigned int nCoinCacheSize = 5000;
 int64 nChainStartTime = 1389306217; // Line: 2815
-
+int64 nHincoinStochasticStartTime = 1; // enter time here
+int64 nHincoinLastStochasticUpdate = 1; // last time stochastic update performed
+int64 nHincoinTwoWeeksTime = 1209600;
+double nHincoinRetargetN = 0.0;
 /** Fees smaller than this (in satoshi) are considered zero fee (for transaction creation) */
 int64 CTransaction::nMinTxFee = 100000;
 /** Fees smaller than this (in satoshi) are considered zero fee (for relaying) */
@@ -1067,6 +1071,12 @@ const unsigned char minNfactor = 10;
 const unsigned char maxNfactor = 30;
 
 unsigned char GetNfactor(int64 nTimestamp) {
+    
+    if(nHincoinUsingStochasticUpdate)
+    {
+        unsigned char stochasticN = (unsigned char)((int)nHincoinRetargetN);
+        return min(max(minNfactor,stochasticN),maxNfactor);
+    }
     int l = 0;
 
     if (nTimestamp <= nChainStartTime)
@@ -1099,7 +1109,7 @@ int64 static GetBlockValue(int nHeight, int64 nFees)
     int64 nSubsidy = 50 * COIN;
 
     // Subsidy is cut in half every 840000 blocks, which will occur approximately every 4 years
-    nSubsidy >>= (nHeight / 525960); // hincoin: 840k blocks in ~4 years
+    nSubsidy >>= (nHeight / 525960); // hincoin: 525960 blocks in ~3 years
 
     return nSubsidy + nFees;
 }
@@ -1275,9 +1285,9 @@ unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBloc
 // Using KGW
 unsigned int static GetNextWorkRequired_V2(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
 {
-        static const int64        BlocksTargetSpacing                        = 2.5 * 60; // 2.5 minutes
-        unsigned int                TimeDaySeconds                                = 60 * 60 * 24;
-        int64                                PastSecondsMin                                = TimeDaySeconds * 0.25;
+        static const int64        BlocksTargetSpacing                                      = nTargetSpacing; // 2.5 minutes
+        unsigned int                TimeDaySeconds                                         = 60 * 60 * 24;
+        int64                                PastSecondsMin                                = TimeDaySeconds * 0.20;
         int64                                PastSecondsMax                                = TimeDaySeconds * 7;
         uint64                                PastBlocksMin                                = PastSecondsMin / BlocksTargetSpacing;
         uint64                                PastBlocksMax                                = PastSecondsMax / BlocksTargetSpacing;        
@@ -1285,10 +1295,39 @@ unsigned int static GetNextWorkRequired_V2(const CBlockIndex* pindexLast, const 
         return KimotoGravityWell(pindexLast, pblock, BlocksTargetSpacing, PastBlocksMin, PastBlocksMax);
 }
 
+double calculateAverageTimeDiff(const CBlockIndex* pindexLast, int64 MaxBlocksToAnalyze, int64 expectedTimeInSeconds)
+{
+    const CBlockIndex* BlockReading = pindexLast;
+    int i = 0;
+    double avg = 0.0;
+    for(i = 1; BlockReading && BlockReading->nHeight != 0; ++i)
+    {
+        if(i >= MaxBlocksToAnalyze)
+            break;
+        avg += BlockReading->GetBlockTime();
+        BlockReading = BlockReading->pprev;
+    }
+    avg /= (i * expectedTimeInSeconds);
+    return avg;
+    
+}
 
-
+void updateN(const CBlockIndex* pindexLast)
+{
+    
+    int64 MaxBlocksToAnalyze = 6720;
+    double avg = calculateAverageTimeDiff(pindexLast,MaxBlocksToAnalyze,180);
+    double alpha = .15; // seems to be the best blend of aggressiveness and passiveness
+    nHincoinRetargetN = nHincoinRetargetN + (alpha * (1 - avg));
+}
 unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
 {
+    
+    if(!nHincoinUsingStochasticUpdate && pindexLast->nTime >= nHincoinStochasticStartTime) 
+    {
+             nHincoinRetargetN = (double)((int)GetNfactor(pindexLast->nTime));
+             nHincoinUsingStochasticUpdate = true;        
+    }
         /*
         int DiffMode = 1; // legacy diff-mode
         if (fTestNet) {
@@ -1301,7 +1340,13 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
         if                (DiffMode == 1) { return GetNextWorkRequired_V1(pindexLast, pblock); } //legacy diff mode
         else if        (DiffMode == 2) { return GetNextWorkRequired_V2(pindexLast, pblock); } // KGW
        */
-        return GetNextWorkRequired_V2(pindexLast, pblock); // KGW
+    if(nHincoinUsingStochasticUpdate && ( (pindexLast->nTime - nHincoinStochasticStartTime < nHincoinTwoWeeksTime) || (pindexLast->nTime - nHincoinLastStochasticUpdate >= nHincoinTwoWeeksTime) ))
+    {
+        updateN(pindexLast);
+        nHincoinLastStochasticUpdate = pindexLast->nTime;
+    }
+    
+    return GetNextWorkRequired_V2(pindexLast, pblock); // KGW
 }
 
 
