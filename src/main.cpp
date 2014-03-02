@@ -49,7 +49,7 @@ bool fTxIndex = false;
 bool nHincoinUsingStochasticUpdate = false;
 unsigned int nCoinCacheSize = 5000;
 int64 nChainStartTime = 1389306217; // Line: 2815
-int64 nHincoinStochasticStartTime = 1393792836; // enter time here
+int64 nHincoinStochasticStartTime = 1393794300; // enter time here
 int64 nHincoinLastStochasticUpdate = 1; // last time stochastic update performed
 int64 nHincoinTwoWeeksTime = 1209600;
 double nHincoinRetargetN = 0.0;
@@ -1238,10 +1238,10 @@ unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBloc
         
     if (BlockLastSolved == NULL || BlockLastSolved->nHeight == 0 || (uint64)BlockLastSolved->nHeight < PastBlocksMin) { return bnProofOfWorkLimit.GetCompact(); }
         
+        
         for (unsigned int i = 1; BlockReading && BlockReading->nHeight > 0; i++) {
                 if (PastBlocksMax > 0 && i > PastBlocksMax) { break; }
                 PastBlocksMass++;
-                
                 if (i == 1)        { PastDifficultyAverage.SetCompact(BlockReading->nBits); }
                 else                { PastDifficultyAverage = ((CBigNum().SetCompact(BlockReading->nBits) - PastDifficultyAveragePrev) / i) + PastDifficultyAveragePrev; }
                 PastDifficultyAveragePrev = PastDifficultyAverage;
@@ -1326,7 +1326,6 @@ void updateN(const CBlockIndex* pindexLast)
 }
 unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
 {
-    
     if(!nHincoinUsingStochasticUpdate && pindexLast->nTime >= nHincoinStochasticStartTime) 
     {
              nHincoinRetargetN = (double)((int)GetNfactor(pindexLast->nTime));
