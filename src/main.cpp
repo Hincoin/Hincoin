@@ -49,7 +49,7 @@ bool fTxIndex = false;
 bool nHincoinUsingStochasticUpdate = false;
 unsigned int nCoinCacheSize = 5000;
 int64 nChainStartTime = 1389306217; // Line: 2815
-int64 nHincoinStochasticStartTime = 1393794300; // enter time here
+int64 nHincoinStochasticStartTime = 1393797000; // enter time here
 int64 nHincoinLastStochasticUpdate = 1; // last time stochastic update performed
 int64 nHincoinTwoWeeksTime = 1209600;
 double nHincoinRetargetN = 0.0;
@@ -1295,22 +1295,38 @@ unsigned int static GetNextWorkRequired_V2(const CBlockIndex* pindexLast, const 
         return KimotoGravityWell(pindexLast, pblock, BlocksTargetSpacing, PastBlocksMin, PastBlocksMax);
 }
 
-double calculateAverageTimeDiff(const CBlockIndex* pindexLast, int64 MaxBlocksToAnalyze, int64 expectedTimeInSeconds)
+double calculateAverageTimeDiff(const CBlockIndex* pindexLast, int64 MaxBlocksToAnalyze)
 {
-    const CBlockIndex* BlockReading = pindexLast;
-    const CBlockIndex* BlockReadingPrev = pindexLast->pprev;
-    int i = 0;
-    double avg = 0.0;
-    for(i = 1; BlockReading && BlockReadingPrev && BlockReading->nHeight != 0; ++i)
+    const CBlockIndex *BlockLastSolved = pindexLast;
+    const CBlockIndex *BlockReading   = pindexLast;
+    uint64   PastBlocksMass           = 0;
+    uint64   PastBlocksMax            = MaxBlocksToAnalyze;
+    int64    PastRateActualSeconds    = 0;
+    int64    PastRateTargetSeconds    = 0;
+    double   PastRateAdjustmentRatio  = double(1);
+        
+    if (BlockLastSolved == NULL || BlockLastSolved->nHeight == 0 ) 
+    { return 1.0; }
+        
+       
+    for (unsigned int i = 1; BlockReading && BlockReading->nHeight > 0; i++)
     {
-        if(i >= MaxBlocksToAnalyze)
-            break;
-        avg +=( BlockReading->GetBlockTime() - BlockReadingPrev->GetBlockTime());
-        BlockReading = BlockReading->pprev;
-        BlockReadingPrev = BlockReadingPrev->pprev;
-    }
-    avg /= (i * expectedTimeInSeconds);
-    return avg;
+                if (PastBlocksMax > 0 && i > PastBlocksMax) { break; }
+                PastBlocksMass++;
+        
+                PastRateActualSeconds  = BlockLastSolved->GetBlockTime() - BlockReading->GetBlockTime();
+                PastRateTargetSeconds  = nTargetSpacing * PastBlocksMass;
+                PastRateAdjustmentRatio = double(1);
+                if (PastRateActualSeconds < 0) { PastRateActualSeconds = 0; }
+                if (PastRateActualSeconds != 0 && PastRateTargetSeconds != 0) 
+                {
+                        PastRateAdjustmentRatio = double(PastRateTargetSeconds) / double(PastRateActualSeconds);
+                }
+                if(BlockReading->pprev == NULL){assert(BlockReading);break;}
+                BlockReading = BlockReading->pprev;
+     }
+    return PastRateAdjustmentRatio;
+        
     
 }
 
@@ -1318,7 +1334,7 @@ void updateN(const CBlockIndex* pindexLast)
 {
     
     int64 MaxBlocksToAnalyze = 6720;
-    double avg = calculateAverageTimeDiff(pindexLast,MaxBlocksToAnalyze,180);
+    double avg = calculateAverageTimeDiff(pindexLast,MaxBlocksToAnalyze);
     double alpha = .15; // seems to be the best blend of aggressiveness and passiveness
     printf("Average: %f\nOld retarget: %f\n",avg,nHincoinRetargetN);
     nHincoinRetargetN = nHincoinRetargetN + (alpha * (1 - avg));
