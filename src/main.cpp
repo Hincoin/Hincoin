@@ -49,7 +49,7 @@ bool fTxIndex = false;
 bool nHincoinUsingStochasticUpdate = false;
 unsigned int nCoinCacheSize = 5000;
 int64 nChainStartTime = 1389306217; // Line: 2815
-int64 nHincoinStochasticStartTime = 1; // enter time here
+int64 nHincoinStochasticStartTime = 1393780810000; // enter time here
 int64 nHincoinLastStochasticUpdate = 1; // last time stochastic update performed
 int64 nHincoinTwoWeeksTime = 1209600;
 double nHincoinRetargetN = 0.0;
@@ -1318,7 +1318,9 @@ void updateN(const CBlockIndex* pindexLast)
     int64 MaxBlocksToAnalyze = 6720;
     double avg = calculateAverageTimeDiff(pindexLast,MaxBlocksToAnalyze,180);
     double alpha = .15; // seems to be the best blend of aggressiveness and passiveness
+    printf("Average: %f\nOld retarget: %f\n",avg,nHincoinRetargetN);
     nHincoinRetargetN = nHincoinRetargetN + (alpha * (1 - avg));
+    printf("New retarget: %f\n",nHincoinRetargetN);
 }
 unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
 {
@@ -1326,7 +1328,8 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     if(!nHincoinUsingStochasticUpdate && pindexLast->nTime >= nHincoinStochasticStartTime) 
     {
              nHincoinRetargetN = (double)((int)GetNfactor(pindexLast->nTime));
-             nHincoinUsingStochasticUpdate = true;        
+             nHincoinUsingStochasticUpdate = true;   
+             printf("stochastic update started!\n");
     }
         /*
         int DiffMode = 1; // legacy diff-mode
