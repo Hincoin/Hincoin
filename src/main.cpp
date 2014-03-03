@@ -50,9 +50,9 @@ bool nHincoinUsingStochasticUpdate = false;
 bool nHincoinStochasticGateAllow = false;
 unsigned int nCoinCacheSize = 5000;
 int64 nChainStartTime = 1389306217; // Line: 2815
-int64 nHincoinStochasticStartTime = 1393800900; // enter time here
+int64 nHincoinStochasticStartTime = 1393807215; // enter time here
 int64 nHincoinLastStochasticUpdate = 1; // last time stochastic update performed
-int64 nHincoinTwoWeeksTime = 1209600;
+int64 nHincoinTwoWeeksTime = 360;
 double nHincoinRetargetN = 0.0;
 /** Fees smaller than this (in satoshi) are considered zero fee (for transaction creation) */
 int64 CTransaction::nMinTxFee = 100000;
