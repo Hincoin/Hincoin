@@ -1345,6 +1345,7 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
 {
     if(!nHincoinUsingStochasticUpdate && pindexLast->nTime >= nHincoinStochasticStartTime) 
     {
+        printf("Acquired first\n");
              nHincoinRetargetN = (double)((int)GetNfactor(pindexLast->nTime));
              nHincoinUsingStochasticUpdate = true;   
              printf("stochastic update started!\n");
@@ -1364,14 +1365,17 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
        */
     if(pindexLast->nTime - nHincoinLastStochasticUpdate >= nHincoinTwoWeeksTime)
     {
+        printf("Aquired.. second\n");
         nHincoinStochasticGateAllow = true;
         nHincoinLastStochasticUpdate = pindexLast->nTime;
     }
     if(nHincoinUsingStochasticUpdate && nHincoinStochasticGateAllow)
     {
+        printf("Aquired last\n");
         updateN(pindexLast);
         nHincoinLastStochasticUpdate = pindexLast->nTime;
         nHincoinStochasticGateAllow = false;
+        printf("Releasing..\n");
     }
     
     return GetNextWorkRequired_V2(pindexLast, pblock); // KGW
