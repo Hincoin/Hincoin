@@ -47,13 +47,22 @@ bool fReindex = false;
 bool fBenchmark = false;
 bool fTxIndex = false;
 bool nHincoinUsingStochasticUpdate = false;
-bool nHincoinStochasticGateAllow = false;
+ // bool nHincoinStochasticGateAllow = false;
+bool nHincoinUsingRUpdate = false;
+ // bool nHincoinStochasticRGateAllow = false;
+
+
 unsigned int nCoinCacheSize = 5000;
 int64 nChainStartTime = 1389306217; // Line: 2815
-int64 nHincoinStochasticStartTime = 1393812304; // enter time here
-int64 nHincoinLastStochasticUpdate = 1; // last time stochastic update performed
-int64 nHincoinTwoWeeksTime = 30;
+ // int64 nHincoinStochasticStartTime = 1393812304; // enter time here
+ // int64 nHincoinLastStochasticUpdate = 1; // last time stochastic update performed
+ // int64 nHincoinStartRLearning = 1394053830;
+ // int64 nHincoinLastRUpdate = 0;
+
+ // int64 nHincoinTwoWeeksTime = 30;
+ // int64 nHincoinRUpdateInterval = 18000;
 double nHincoinRetargetN = 0.0;
+double nHincoinRetargetR = 0.0;
 /** Fees smaller than this (in satoshi) are considered zero fee (for transaction creation) */
 int64 CTransaction::nMinTxFee = 100000;
 /** Fees smaller than this (in satoshi) are considered zero fee (for relaying) */
@@ -1071,6 +1080,20 @@ uint256 static GetOrphanRoot(const CBlockHeader* pblock)
 const unsigned char minNfactor = 10;
 const unsigned char maxNfactor = 30;
 
+const int minRfactor = 1;
+const int maxRfactor = 7;
+
+
+int getRfactor(int64 nTimestamp)
+{
+    if(nHincoinUsingRUpdate)
+    {
+        int currentR = (int) nHincoinRetargetR;
+        return min(max(currentR, minRfactor),maxRfactor);
+        
+    }
+    return 1;
+}
 unsigned char GetNfactor(int64 nTimestamp) {
     
     if(nHincoinUsingStochasticUpdate)
@@ -1246,7 +1269,8 @@ unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBloc
                 if (i == 1)        { PastDifficultyAverage.SetCompact(BlockReading->nBits); }
                 else                { PastDifficultyAverage = ((CBigNum().SetCompact(BlockReading->nBits) - PastDifficultyAveragePrev) / i) + PastDifficultyAveragePrev; }
                 PastDifficultyAveragePrev = PastDifficultyAverage;
-                
+		printf("inside kgw!\n");                
+
                 PastRateActualSeconds                        = BlockLastSolved->GetBlockTime() - BlockReading->GetBlockTime();
                 PastRateTargetSeconds                        = TargetBlocksSpacingSeconds * PastBlocksMass;
                 PastRateAdjustmentRatio                        = double(1);
@@ -1330,28 +1354,51 @@ double calculateAverageTimeDiff(const CBlockIndex* pindexLast, int64 MaxBlocksTo
         
     
 }
+void updateR(const CBlockIndex* pindexLast)
+{ 
+    int64 MinBlocksToAnalyze  = 100; // must have at least 100 blocks to begin rUpdate
+    if(pindexLast->nTime < MinBlocksToAnalyze) return;
+    nHincoinUsingRUpdate = true;
+    int64 MaxBlocksToAnalyze = 100; // 5 days worth  of block
+    double avg = calculateAverageTimeDiff(pindexLast,MaxBlocksToAnalyze);
+    double alpha = .003;
+    printf("Average: %f\nOld retarget R: %f\n",avg,nHincoinRetargetR);
+    nHincoinRetargetR = nHincoinRetargetR + (alpha * (1 - avg));
+    printf("New retarget R: %f\n",nHincoinRetargetR);
 
+    
+}
 void updateN(const CBlockIndex* pindexLast)
 {
-    
-    int64 MaxBlocksToAnalyze = 6720;
+    int64 MinBlocksToAnalyze = 100;
+    if(pindexLast->nHeight < MinBlocksToAnalyze)
+        return;
+    nHincoinUsingStochasticUpdate = true;
+    int64 MaxBlocksToAnalyze = 100;
     double avg = calculateAverageTimeDiff(pindexLast,MaxBlocksToAnalyze);
-    double alpha = .15; // seems to be the best blend of aggressiveness and passiveness
+    double alpha = .005; // seems to be the best blend of aggressiveness and passiveness
     printf("Average: %f\nOld retarget: %f\n",avg,nHincoinRetargetN);
     nHincoinRetargetN = nHincoinRetargetN + (alpha * (1 - avg));
     printf("New retarget: %f\n",nHincoinRetargetN);
 }
 unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
 {
-    if(!nHincoinUsingStochasticUpdate && pindexLast->nTime >= nHincoinStochasticStartTime) 
+    /*if(!nHincoinUsingStochasticUpdate && pindexLast->nTime >= nHincoinStochasticStartTime) 
     {
-        printf("Acquired first\n");
+    //    printf("Acquired first\n");
              nHincoinRetargetN = (double)((int)GetNfactor(pindexLast->nTime));
              nHincoinUsingStochasticUpdate = true;   
-             printf("stochastic update started!\n");
+         //    printf("stochastic update started!\n");
              nHincoinStochasticGateAllow  = true;
     }
-        /*
+    
+    if(!nHincoinUsingRUpdate && pindexLast->nTime >= nHincoinStartRLearning)
+    {
+        nHincoinRetargetR = getRfactor(pindexLast->nTime);
+        nHincoinUsingRUpdate = true;
+        nHincoinStochasticRGateAllow = true;
+    }
+        
         int DiffMode = 1; // legacy diff-mode
         if (fTestNet) {
                 if (pindexLast->nHeight+1 >= 2116) { DiffMode = 2; } // hincoin, 100 blocks after first legacy diff adjustment
@@ -1362,22 +1409,39 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
         
         if                (DiffMode == 1) { return GetNextWorkRequired_V1(pindexLast, pblock); } //legacy diff mode
         else if        (DiffMode == 2) { return GetNextWorkRequired_V2(pindexLast, pblock); } // KGW
-       */
+       
     if(pindexLast->nTime - nHincoinLastStochasticUpdate >= nHincoinTwoWeeksTime)
     {
-        printf("Aquired.. second\n");
+      //  printf("Aquired.. second\n");
         nHincoinStochasticGateAllow = true;
         nHincoinLastStochasticUpdate = pindexLast->nTime;
     }
+    if(pindexLast->nTime - nHincoinLastRUpdate >= nHincoinRUpdateInterval)
+    {
+        nHincoinStochasticRGateAllow = true;
+        nHincoinLastRUpdate = pindexLast->nTime;
+    }
     if(nHincoinUsingStochasticUpdate && nHincoinStochasticGateAllow)
     {
-        printf("Aquired last\n");
+       // printf("Aquired last\n");
         updateN(pindexLast);
         nHincoinLastStochasticUpdate = pindexLast->nTime;
         nHincoinStochasticGateAllow = false;
         printf("Releasing..\n");
     }
+    if(nHincoinUsingRUpdate && nHincoinStochasticRGateAllow)
+    {
+        //      Implement this method later
+        
+        // updateR(pindexLast);
+        
+        nHincoinLastRUpdate = pindexLast->nTime;
+        nHincoinStochasticRGateAllow = false;
+    }
     
+    */
+     updateN(pindexLast); //. call each time, reject if minimum isn't surpassed
+     updateR(pindexLast); //  call each time, reject if minimum isn't surpassed
     return GetNextWorkRequired_V2(pindexLast, pblock); // KGW
 }
 
@@ -3017,6 +3081,7 @@ bool InitBlockIndex() {
             // creating a different genesis block:
             uint256 hashTarget = CBigNum().SetCompact(block.nBits).getuint256();
             uint256 thash;
+           // int r = getR
             unsigned long int scrypt_scratpad_size_current_block = ((1 << (GetNfactor(block.nTime) + 1)) * 128 ) + 63;
             char scratchpad[scrypt_scratpad_size_current_block];
             printf("Created scratchpad\n");
@@ -4865,7 +4930,8 @@ void static hincoinMiner(CWallet *pwallet)
 
             uint256 thash;
             
-            unsigned long int scrypt_scratpad_size_current_block = ((1 << (GetNfactor(pblock->nTime) + 1)) * 128 ) + 63;
+            int r = getRfactor(pblock->nTime);
+            unsigned long int scrypt_scratpad_size_current_block = ((r << (GetNfactor(pblock->nTime) + 1)) * 128 ) + 63;
             
             char scratchpad[scrypt_scratpad_size_current_block];
             
