@@ -1269,7 +1269,7 @@ unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBloc
                 if (i == 1)        { PastDifficultyAverage.SetCompact(BlockReading->nBits); }
                 else                { PastDifficultyAverage = ((CBigNum().SetCompact(BlockReading->nBits) - PastDifficultyAveragePrev) / i) + PastDifficultyAveragePrev; }
                 PastDifficultyAveragePrev = PastDifficultyAverage;
-		printf("inside kgw!\n");                
+		//printf("inside kgw!\n");                
 
                 PastRateActualSeconds                        = BlockLastSolved->GetBlockTime() - BlockReading->GetBlockTime();
                 PastRateTargetSeconds                        = TargetBlocksSpacingSeconds * PastBlocksMass;
@@ -1357,7 +1357,7 @@ double calculateAverageTimeDiff(const CBlockIndex* pindexLast, int64 MaxBlocksTo
 void updateR(const CBlockIndex* pindexLast)
 { 
     int64 MinBlocksToAnalyze  = 100; // must have at least 100 blocks to begin rUpdate
-    if(pindexLast->nTime < MinBlocksToAnalyze) return;
+    if(pindexLast->nHeight < MinBlocksToAnalyze) return;
     nHincoinUsingRUpdate = true;
     int64 MaxBlocksToAnalyze = 100; // 5 days worth  of block
     double avg = calculateAverageTimeDiff(pindexLast,MaxBlocksToAnalyze);
