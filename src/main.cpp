@@ -1329,7 +1329,7 @@ double calculateAverageTimeDiff(const CBlockIndex* pindexLast, int64 MaxBlocksTo
     uint64   PastBlocksMax            = MaxBlocksToAnalyze;
     int64    PastRateActualSeconds    = 0;
     int64    PastRateTargetSeconds    = 0;
-    double   PastRateAdjustmentRatio  = double(0);
+    double   PastRateAdjustmentRatio  = double(1);
         
     if (BlockLastSolved == NULL || BlockLastSolved->nHeight == 0 ) 
     { return 1.0; }
@@ -1342,17 +1342,17 @@ double calculateAverageTimeDiff(const CBlockIndex* pindexLast, int64 MaxBlocksTo
         
                 PastRateActualSeconds  = BlockLastSolved->GetBlockTime() - BlockReading->GetBlockTime();
                 PastRateTargetSeconds  = nTargetSpacing * PastBlocksMass;
-            //    PastRateAdjustmentRatio = double(1);
+                PastRateAdjustmentRatio = double(1);
                 if (PastRateActualSeconds < 0) { PastRateActualSeconds = 0; }
                 if (PastRateActualSeconds != 0 && PastRateTargetSeconds != 0) 
                 {
-                        PastRateAdjustmentRatio = PastRateAdjustmentRatio + (double(PastRateTargetSeconds) / double(PastRateActualSeconds));
+                        PastRateAdjustmentRatio = double(PastRateTargetSeconds) / double(PastRateActualSeconds);
                 }
                 if(BlockReading->pprev == NULL){assert(BlockReading);break;}
                 BlockReading = BlockReading->pprev;
      }
     
-    return PastRateAdjustmentRatio / (i * nTargetSpacing );
+    return PastRateAdjustmentRatio;
         
     
 }
@@ -1365,7 +1365,7 @@ void updateR(const CBlockIndex* pindexLast)
     double avg = calculateAverageTimeDiff(pindexLast,MaxBlocksToAnalyze);
     double alpha = .003;
     printf("Average: %f\nOld retarget R: %f\n",avg,nHincoinRetargetR);
-    nHincoinRetargetR = nHincoinRetargetR + (alpha * (1 - avg));
+    nHincoinRetargetR = nHincoinRetargetR + (alpha * (1 -(1/ avg)));
     printf("New retarget R: %f\n",nHincoinRetargetR);
 
     
@@ -1380,7 +1380,7 @@ void updateN(const CBlockIndex* pindexLast)
     double avg = calculateAverageTimeDiff(pindexLast,MaxBlocksToAnalyze);
     double alpha = .005; // seems to be the best blend of aggressiveness and passiveness
     printf("Average: %f\nOld retarget: %f\n",avg,nHincoinRetargetN);
-    nHincoinRetargetN = nHincoinRetargetN + (alpha * (1 - avg));
+    nHincoinRetargetN = nHincoinRetargetN + (alpha * (1 - (1/avg)));
     printf("New retarget: %f\n",nHincoinRetargetN);
 }
 unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
