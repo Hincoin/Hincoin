@@ -1140,8 +1140,9 @@ int64 static GetBlockValue(int nHeight, int64 nFees)
 
 
 
-static const int64 nTargetTimespan = 3.5 * 24 * 60 * 60; // hincoin: 3.5 days
-static const int64 nTargetSpacing = 3 * 60; // hincoin: 2.5 minutes
+static const int64 nTargetTimespan = 3.5 * 24 * 60 * 60; // hincoin: 3.5 days -- legacy variable, can be safely ignored
+
+static const int64 nTargetSpacing = 3 * 60; // hincoin: 3 minutes
 static const int64 nInterval = nTargetTimespan / nTargetSpacing;
 
 //
@@ -1328,29 +1329,30 @@ double calculateAverageTimeDiff(const CBlockIndex* pindexLast, int64 MaxBlocksTo
     uint64   PastBlocksMax            = MaxBlocksToAnalyze;
     int64    PastRateActualSeconds    = 0;
     int64    PastRateTargetSeconds    = 0;
-    double   PastRateAdjustmentRatio  = double(1);
+    double   PastRateAdjustmentRatio  = double(0);
         
     if (BlockLastSolved == NULL || BlockLastSolved->nHeight == 0 ) 
     { return 1.0; }
         
-       
-    for (unsigned int i = 1; BlockReading && BlockReading->nHeight > 0; i++)
+    unsigned int i = 1;
+    for (; BlockReading && BlockReading->nHeight > 0; i++) 
     {
                 if (PastBlocksMax > 0 && i > PastBlocksMax) { break; }
                 PastBlocksMass++;
         
                 PastRateActualSeconds  = BlockLastSolved->GetBlockTime() - BlockReading->GetBlockTime();
                 PastRateTargetSeconds  = nTargetSpacing * PastBlocksMass;
-                PastRateAdjustmentRatio = double(1);
+            //    PastRateAdjustmentRatio = double(1);
                 if (PastRateActualSeconds < 0) { PastRateActualSeconds = 0; }
                 if (PastRateActualSeconds != 0 && PastRateTargetSeconds != 0) 
                 {
-                        PastRateAdjustmentRatio = double(PastRateTargetSeconds) / double(PastRateActualSeconds);
+                        PastRateAdjustmentRatio = PastRateAdjustmentRatio + (double(PastRateTargetSeconds) / double(PastRateActualSeconds));
                 }
                 if(BlockReading->pprev == NULL){assert(BlockReading);break;}
                 BlockReading = BlockReading->pprev;
      }
-    return PastRateAdjustmentRatio;
+    
+    return PastRateAdjustmentRatio / (i * nTargetSpacing );
         
     
 }
