@@ -1321,7 +1321,7 @@ unsigned int static GetNextWorkRequired_V2(const CBlockIndex* pindexLast, const 
         return KimotoGravityWell(pindexLast, pblock, BlocksTargetSpacing, PastBlocksMin, PastBlocksMax);
 }
 
-double calculateAverageTimeDiff(const CBlockIndex* pindexLast, int64 MaxBlocksToAnalyze)
+double calculateAverageTimeDiff(const CBlockIndex* pindexLast, int64 MaxBlocksToAnalyze, int64 MinBlocksToAnalyze)
 {
     const CBlockIndex *BlockLastSolved = pindexLast;
     const CBlockIndex *BlockReading   = pindexLast;
@@ -1335,10 +1335,14 @@ double calculateAverageTimeDiff(const CBlockIndex* pindexLast, int64 MaxBlocksTo
     { return 1.0; }
         
     unsigned int i = 1;
+    
+    double lowerBound;
+    double upperBound;
+    double bound;
     for (; BlockReading && BlockReading->nHeight > 0; i++) 
     {
                 if (PastBlocksMax > 0 && i > PastBlocksMax) { break; }
-                PastBlocksMass++;
+                ++PastBlocksMass;
         
                 PastRateActualSeconds  = BlockLastSolved->GetBlockTime() - BlockReading->GetBlockTime();
                 PastRateTargetSeconds  = nTargetSpacing * PastBlocksMass;
@@ -1348,9 +1352,22 @@ double calculateAverageTimeDiff(const CBlockIndex* pindexLast, int64 MaxBlocksTo
                 {
                         PastRateAdjustmentRatio = double(PastRateTargetSeconds) / double(PastRateActualSeconds);
                 }
+                bound = 1 + (0.7084 * pow((double(PastBlocksMass)/double(144)), -1.228));
+                upperBound = bound;
+                lowerBound = 1 / bound;
+                if(PastBlocksMass >= MinBlocksToAnalyze)
+                {
+                    if((PastRateAdjustmentRatio <= lowerBound) || (PastRateAdjustmentRatio >= upperBound))
+                    {
+                        assert(BlockReading);
+                        break;
+                    }
+                }
+                
                 if(BlockReading->pprev == NULL){assert(BlockReading);break;}
                 BlockReading = BlockReading->pprev;
      }
+    
     
     return PastRateAdjustmentRatio;
         
@@ -1361,10 +1378,10 @@ void updateR(const CBlockIndex* pindexLast)
     int64 MinBlocksToAnalyze  = 100; // must have at least 100 blocks to begin rUpdate
     if(pindexLast->nHeight < MinBlocksToAnalyze) return;
     nHincoinUsingRUpdate = true;
-    int64 MaxBlocksToAnalyze = 100; // 5 days worth  of block
-    double avg = calculateAverageTimeDiff(pindexLast,MaxBlocksToAnalyze);
+    int64 MaxBlocksToAnalyze = 2400; // 5 days worth  of block
+    double avg = calculateAverageTimeDiff(pindexLast,MaxBlocksToAnalyze,MinBlocksToAnalyze);
     double alpha = .003;
-    printf("Average: %f\nOld retarget R: %f\n",avg,nHincoinRetargetR);
+    printf("Average: %f\nOld retarget R: %f\n",(1/avg),nHincoinRetargetR);
     nHincoinRetargetR = nHincoinRetargetR + (alpha * (1 -(1/ avg)));
     printf("New retarget R: %f\n",nHincoinRetargetR);
 
@@ -1375,11 +1392,11 @@ void updateN(const CBlockIndex* pindexLast)
     int64 MinBlocksToAnalyze = 100;
     if(pindexLast->nHeight < MinBlocksToAnalyze)
         return;
+    int64 MaxBlocksToAnalyze = 2400;
     nHincoinUsingStochasticUpdate = true;
-    int64 MaxBlocksToAnalyze = 100;
-    double avg = calculateAverageTimeDiff(pindexLast,MaxBlocksToAnalyze);
+    double avg = calculateAverageTimeDiff(pindexLast,MaxBlocksToAnalyze,MinBlocksToAnalyze);
     double alpha = .005; // seems to be the best blend of aggressiveness and passiveness
-    printf("Average: %f\nOld retarget: %f\n",avg,nHincoinRetargetN);
+    printf("Average: %f\nOld retarget: %f\n",(1/avg),nHincoinRetargetN);
     nHincoinRetargetN = nHincoinRetargetN + (alpha * (1 - (1/avg)));
     printf("New retarget: %f\n",nHincoinRetargetN);
 }
