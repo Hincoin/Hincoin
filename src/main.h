@@ -194,6 +194,7 @@ bool AbortNode(const std::string &msg);
 
 
 unsigned char GetNfactor(int64 nTimestamp);
+unsigned char GetNfactor(int64 nTimestamp, const CBlockIndex* pindexLast);
 
 
 
@@ -1366,7 +1367,8 @@ public:
     uint256 GetPoWHash() const
     {
         uint256 thash;
-        scrypt_N_1_1_256(BEGIN(nVersion), BEGIN(thash), GetNfactor(nTime));
+        const CBlockIndex* blockPointer = ( const CBlockIndex*)this;
+        scrypt_N_1_1_256(BEGIN(nVersion), BEGIN(thash), GetNfactor(nTime,blockPointer));
         return thash;
     }
 
