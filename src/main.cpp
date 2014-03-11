@@ -1208,6 +1208,9 @@ int getRfactor(int64 nTimestamp, const CBlockIndex* pindexLast)
     if(pindexLast->nHeight < weeksWorthOfBlocks) return 1;
     if(pindexLast->nHeight - nHincoinLastRBlockHeight >= weeksWorthOfBlocks)
     {
+        
+        printf("Le here\n");
+        
       //  nHincoinRUpdateInterval = nTimestamp;
         nHincoinLastRBlockHeight = pindexLast->nHeight;
         double rAlpha = .003;
@@ -1219,6 +1222,7 @@ int getRfactor(int64 nTimestamp, const CBlockIndex* pindexLast)
         nHincoinWeekAgoRDifficulty = nHincoinRetargetR;
         
     }
+    printf("Outside R loop\n");
     return min(max((int)nHincoinRetargetR,minRfactor),maxRfactor);
     
 }
@@ -1235,6 +1239,7 @@ unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast) {
     }
     if(pindexLast->nHeight - nHincoinLastNBlockHeight >= hoursWorthOfBlocks)
     {
+        printf("Le here\n");
         double alpha = .0075;
    //     nHincoinLastUpdateTime = nTimestamp;
         unsigned int thisDifficulty = KimotoGravityWell(pindexLast,NULL,nTargetSpacing,hoursWorthOfBlocks,hoursWorthOfBlocks);
@@ -1247,6 +1252,7 @@ unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast) {
    
       
     }
+    printf("Outside N loop\n");
     int n = (int) nHincoinRetargetN;
     return min(max( (unsigned char) n, minNfactor),maxNfactor);
     /*int l = 0;
