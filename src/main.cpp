@@ -65,6 +65,9 @@ int64 nHincoinRUpdateInterval = 604800; // hincoin: update R every 2 weeks
 double nHincoinRetargetN = 0.0;
 double nHincoinRetargetR = 0.0;
 
+int nHincoinLastNBlockHeight = 0;
+int nHincoinLastRBlockHeight = 0;
+
 unsigned int nCoinCacheSize = 5000;
 int64 nChainStartTime = 1389306217; // Line: 2815
 
@@ -1203,9 +1206,10 @@ int getRfactor(int64 nTimestamp, const CBlockIndex* pindexLast)
     
     int weeksWorthOfBlocks = 3360;
     if(pindexLast->nHeight < weeksWorthOfBlocks) return 1;
-    if(nTimestamp - nHincoinLastRUpdate >= nHincoinRUpdateInterval)
+    if(pindexLast->nHeight - nHincoinLastRBlockHeight >= weeksWorthOfBlocks)
     {
-        nHincoinRUpdateInterval = nTimestamp;
+      //  nHincoinRUpdateInterval = nTimestamp;
+        nHincoinLastRBlockHeight = pindexLast->nHeight;
         double rAlpha = .003;
         unsigned int thisDifficulty = KimotoGravityWell(pindexLast,NULL,nTargetSpacing,weeksWorthOfBlocks,weeksWorthOfBlocks);
          printf("Recalculating R !\n");
@@ -1229,16 +1233,17 @@ unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast) {
     {
         return minNfactor;
     }
-    if(nTimestamp - nHincoinLastUpdateTime >= nHincoinUpdateInterval)
+    if(pindexLast->nHeight - nHincoinLastNBlockHeight >= hoursWorthOfBlocks)
     {
         double alpha = .0075;
-        nHincoinLastUpdateTime = nTimestamp;
+   //     nHincoinLastUpdateTime = nTimestamp;
         unsigned int thisDifficulty = KimotoGravityWell(pindexLast,NULL,nTargetSpacing,hoursWorthOfBlocks,hoursWorthOfBlocks);
         printf("Recalculating N !\n");
         printf("Old: %f\n",nHincoinRetargetN);
         nHincoinRetargetN = nHincoinRetargetN + alpha * (thisDifficulty - nHincoinHourAgoDifficulty);
         printf("New: %f\n",nHincoinRetargetN);
         nHincoinHourAgoDifficulty = thisDifficulty;
+        nHincoinLastNBlockHeight = pindexLast->nHeight;
    
       
     }
