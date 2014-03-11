@@ -1200,6 +1200,7 @@ unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBloc
 int getRfactor(int64 nTimestamp, const CBlockIndex* pindexLast)
 {
     if(pindexLast == NULL) return 1;
+    
     int weeksWorthOfBlocks = 3360;
     if(pindexLast->nHeight < weeksWorthOfBlocks) return 1;
     if(nTimestamp - nHincoinLastRUpdate >= nHincoinRUpdateInterval)
