@@ -1230,11 +1230,12 @@ int getRfactor(int64 nTimestamp, const CBlockIndex* pindexLast2)
 unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast2) {
     
     const CBlockIndex* pindexLast = nHincoinLastMined;
-    printf("N block height: %i\n",pindexLast->nHeight);
     if(pindexLast == NULL || pindexLast2 ==NULL)
     {
         return minNfactor;
     }
+    printf("N block height: %i\n",pindexLast->nHeight);
+
     int hoursWorthOfBlocks = 20;
     if(pindexLast->nHeight < hoursWorthOfBlocks)
     {
