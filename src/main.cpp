@@ -38,7 +38,7 @@ static CBigNum nHincoinRLimit(1); // hincoin: start r at 1 (which is the default
 
 
 
-
+const CBlockIndex* nHincoinLastMined = NULL;
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
 uint256 nBestChainWork = 0;
@@ -1200,8 +1200,9 @@ unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBloc
 }
 
 
-int getRfactor(int64 nTimestamp, const CBlockIndex* pindexLast)
+int getRfactor(int64 nTimestamp, const CBlockIndex* pindexLast2)
 {
+    const CBlockIndex* pindexLast = nHincoinLastMined;
     if(pindexLast == NULL) return 1;
     
     int weeksWorthOfBlocks = 3360;
@@ -1226,10 +1227,11 @@ int getRfactor(int64 nTimestamp, const CBlockIndex* pindexLast)
     return min(max((int)nHincoinRetargetR,minRfactor),maxRfactor);
     
 }
-unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast) {
+unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast2) {
     
+    const CBlockIndex* pindexLast = nHincoinLastMined;
     printf("N block height: %i\n",pindexLast->nHeight);
-    if(pindexLast == NULL)
+    if(pindexLast == NULL || pindexLast2 ==NULL)
     {
         return minNfactor;
     }
@@ -1446,6 +1448,7 @@ void updateN(const CBlockIndex* pindexLast)
 */
 unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
 {
+    nHincoinLastMined = pindexLast;
     /*if(!nHincoinUsingStochasticUpdate && pindexLast->nTime >= nHincoinStochasticStartTime) 
     {
     //    printf("Acquired first\n");
@@ -1633,7 +1636,7 @@ bool ConnectBestBlock(CValidationState &state) {
 void CBlockHeader::UpdateTime(const CBlockIndex* pindexPrev)
 {
     nTime = max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
-
+   // nHincoinLastMined = pindexPrev;
     // Updating time can change work required on testnet:
     if (fTestNet)
         nBits = GetNextWorkRequired(pindexPrev, this);
