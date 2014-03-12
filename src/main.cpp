@@ -1204,7 +1204,7 @@ int getRfactor(int64 nTimestamp, const CBlockIndex* pindexLast2)
 {
     const CBlockIndex* pindexLast = nHincoinLastMined;
     if(pindexLast == NULL) return 1;
-    
+    if(pindexLast2 == NULL) return 1;
     int weeksWorthOfBlocks = 3360;
     if(pindexLast->nHeight < weeksWorthOfBlocks) return 1;
     if(pindexLast->nHeight - nHincoinLastRBlockHeight >= weeksWorthOfBlocks)
