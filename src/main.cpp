@@ -1206,7 +1206,7 @@ int getRfactor(int64 nTimestamp, const CBlockIndex* pindexLast2)
     if(pindexLast == NULL) return 1;
     if(pindexLast2 == NULL) return 1;
     int weeksWorthOfBlocks = 3360;
-    if(pindexLast->nHeight < weeksWorthOfBlocks) return 1;
+    if(pindexLast->nHeight < 96) return 1;
     if(pindexLast->nHeight - nHincoinLastRBlockHeight >= weeksWorthOfBlocks)
     {
         
@@ -1234,10 +1234,13 @@ unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast2) {
     {
         return minNfactor;
     }
-    printf("N block height: %i\n",pindexLast->nHeight);
-
+    //printf("N block height: %i\n",pindexLast->nHeight);
+    if(pindexLast->nHeight % 5 == 0)
+    {
+	printf("N block height: %i\n",pindexLast->nHeight);
+    }
     int hoursWorthOfBlocks = 20;
-    if(pindexLast->nHeight < hoursWorthOfBlocks)
+    if(pindexLast->nHeight < 96)
     {
         return minNfactor;
     }
@@ -1409,7 +1412,7 @@ unsigned int static GetNextWorkRequired_V2(const CBlockIndex* pindexLast, const 
 {
         static const int64        BlocksTargetSpacing                                      = nTargetSpacing; // 2.5 minutes
         unsigned int                TimeDaySeconds                                         = 60 * 60 * 24;
-        int64                                PastSecondsMin                                = TimeDaySeconds * 0.20;
+        int64                                PastSecondsMin                                = TimeDaySeconds * 0.020;
         int64                                PastSecondsMax                                = TimeDaySeconds * 7;
         uint64                                PastBlocksMin                                = PastSecondsMin / BlocksTargetSpacing;
         uint64                                PastBlocksMax                                = PastSecondsMax / BlocksTargetSpacing;        
