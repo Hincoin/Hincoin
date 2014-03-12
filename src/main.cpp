@@ -3140,9 +3140,14 @@ bool InitBlockIndex() {
         printf("%s\n", block.hashMerkleRoot.ToString().c_str());
         assert(block.hashMerkleRoot == uint256("0x3cf93ba62b85e77acea220c93d3349322d577ab01725d73df21c3ebdda859b42"));
        
+        
+        if(block.GetHash() == hashGenesisBlock)
+        {
+         printf("The block hashes are the same\n");   
+        }
         if (true && block.GetHash() != hashGenesisBlock)
         {
-           // printf("Searching for genesis block...\n");
+            printf("Searching for genesis block...\n");
             // This will figure out a valid hash and Nonce if you're
             // creating a different genesis block:
             uint256 hashTarget = CBigNum().SetCompact(block.nBits).getuint256();
@@ -3186,9 +3191,9 @@ bool InitBlockIndex() {
             printf("block.nNonce = %u \n", block.nNonce);
             printf("block.GetHash = %s\n", block.GetHash().ToString().c_str());
         }
-        block.print();
+      //  block.print();
         assert(hash == hashGenesisBlock);
-
+        printf("Got past the assertion!\n");
         // Start new block file
         try {
             unsigned int nBlockSize = ::GetSerializeSize(block, SER_DISK, CLIENT_VERSION);
