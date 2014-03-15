@@ -58,8 +58,8 @@ bool nHincoinUsingStochasticUpdate = false;
 bool nHincoinUsingStochasticRUpdate = false;
 bool nHincoinNInitiated = false;
 bool nHincoinRinitiated = false;
-unsigned int nHincoinHourAgoDifficulty;
-unsigned int nHincoinWeekAgoRDifficulty;
+double nHincoinHourAgoDifficulty;
+double nHincoinWeekAgoRDifficulty;
 int64 nHincoinLastUpdateTime = 0;
 int64 nHincoinUpdateInterval = 3600; // update  every hour
 int64 nHincoinLastRUpdate = 0;
@@ -1141,6 +1141,38 @@ static const int64 nTargetSpacing = 3 * 60; // hincoin: 3 minutes
 static const int64 nInterval = nTargetTimespan / nTargetSpacing;
 
 
+
+double nHincoinGetDifficulty(const CBlockIndex* blockindex)
+{
+    // Floating point number that is a multiple of the minimum difficulty,
+    // minimum difficulty = 1.0.
+    if (blockindex == NULL)
+    {
+        if (pindexBest == NULL)
+            return 1.0;
+        else
+            blockindex = pindexBest;
+    }
+
+    int nShift = (blockindex->nBits >> 24) & 0xff;
+
+    double dDiff =
+        (double)0x0000ffff / (double)(blockindex->nBits & 0x00ffffff);
+
+    while (nShift < 29)
+    {
+        dDiff *= 256.0;
+        nShift++;
+    }
+    while (nShift > 29)
+    {
+        dDiff /= 256.0;
+        nShift--;
+    }
+
+    return dDiff;
+}
+
 unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBlockHeader *pblock, uint64 TargetBlocksSpacingSeconds, uint64 PastBlocksMin, uint64 PastBlocksMax) {
         /* current difficulty formula - kimoto gravity well */
         const CBlockIndex *BlockLastSolved                                = pindexLast;
@@ -1226,7 +1258,8 @@ int getRfactor(int64 nTimestamp, const CBlockIndex* pindexLast2)
       //  nHincoinRUpdateInterval = nTimestamp;
         nHincoinLastRBlockHeight = pindexLast->nHeight;
         double rAlpha = .003;
-        unsigned int thisDifficulty = KimotoGravityWell(pindexLast,NULL,nTargetSpacing,weeksWorthOfBlocks,weeksWorthOfBlocks);
+        double thisDifficulty = KimotoGravityWell(pindexLast,NULL,nTargetSpacing,weeksWorthOfBlocks,weeksWorthOfBlocks);
+        printf("Current difficulty R: %f\n",thisDifficulty);
          printf("Recalculating R !\n");
         printf("Old: %f\n",nHincoinRetargetR);
         nHincoinRetargetR = nHincoinRetargetR + (rAlpha * (thisDifficulty - nHincoinWeekAgoRDifficulty));
@@ -1255,8 +1288,8 @@ unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast2) {
     {
         if(!nHincoinNInitiated)
         {
-            nHincoinHourAgoDifficulty = KimotoGravityWell(pindexLast,NULL,nTargetSpacing,hoursWorthOfBlocks,hoursWorthOfBlocks);
-            printf("First time computing nHourAgo... value = %ui\n",nHincoinHourAgoDifficulty);
+            nHincoinHourAgoDifficulty = nHincoinGetDifficulty(pindexLast);
+            printf("First time computing nHourAgo... value = %f\n",nHincoinHourAgoDifficulty);
             nHincoinNInitiated = true;
         }
         return minNfactor;
@@ -1268,10 +1301,10 @@ unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast2) {
         printf("Le N here\n");
         double alpha = .0075;
    //     nHincoinLastUpdateTime = nTimestamp;
-        unsigned int thisDifficulty = KimotoGravityWell(pindexLast,NULL,nTargetSpacing,hoursWorthOfBlocks,hoursWorthOfBlocks);
+        double thisDifficulty = nHincoinGetDifficulty(pindexLast);//KimotoGravityWell(pindexLast,NULL,nTargetSpacing,hoursWorthOfBlocks,hoursWorthOfBlocks);
         printf("Recalculating N !\n");
-        printf("Current Diff = %ui\n",thisDifficulty);
-        printf("Old diff=%ui",nHincoinHourAgoDifficulty);
+        printf("Current Diff = %f\n",thisDifficulty);
+        printf("Old diff=%f\n",nHincoinHourAgoDifficulty);
         printf("Old: %f\n",nHincoinRetargetN);
         nHincoinRetargetN = nHincoinRetargetN + alpha * (thisDifficulty - nHincoinHourAgoDifficulty);
         printf("New: %f\n",nHincoinRetargetN);
