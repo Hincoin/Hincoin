@@ -56,6 +56,8 @@ bool fTxIndex = false;
 /*   Hincoin new variables to use. They have their own blocks for code readibility*/
 bool nHincoinUsingStochasticUpdate = false;
 bool nHincoinUsingStochasticRUpdate = false;
+bool nHincoinNInitiated = false;
+bool nHincoinRinitiated = false;
 unsigned int nHincoinHourAgoDifficulty;
 unsigned int nHincoinWeekAgoRDifficulty;
 int64 nHincoinLastUpdateTime = 0;
@@ -72,7 +74,8 @@ unsigned int nCoinCacheSize = 5000;
 int64 nChainStartTime = 1389306217; // Line: 2815
 
 
-
+map<int64,bool> adaptiveNHasUsed;
+map<int64,int> adaptiveNFactor;
 
 
 /** Fees smaller than this (in satoshi) are considered zero fee (for transaction creation) */
@@ -1206,7 +1209,15 @@ int getRfactor(int64 nTimestamp, const CBlockIndex* pindexLast2)
     if(pindexLast == NULL) return 1;
     if(pindexLast2 == NULL) return 1;
     int weeksWorthOfBlocks = 3360;
-    if(pindexLast->nHeight < 96) return 1;
+    if(pindexLast->nHeight < 3360) 
+    {
+        if(!nHincoinRinitiated)
+        {
+            nHincoinWeekAgoRDifficulty = KimotoGravityWell(pindexLast,NULL,nTargetSpacing,weeksWorthOfBlocks,weeksWorthOfBlocks);
+            nHincoinRinitiated = true;
+        }
+        return 1;
+    }
     if(pindexLast->nHeight - nHincoinLastRBlockHeight >= weeksWorthOfBlocks)
     {
         
@@ -1240,11 +1251,18 @@ unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast2) {
 	printf("N block height: %i\n",pindexLast->nHeight);
     }
     int hoursWorthOfBlocks = 20;
-    if(pindexLast->nHeight < 96)
+    if(pindexLast->nHeight < 20)
     {
+        if(!nHincoinNInitiated)
+        {
+            nHincoinHourAgoDifficulty = KimotoGravityWell(pindexLast,NULL,nTargetSpacing,hoursWorthOfBlocks,hoursWorthOfBlocks);
+            
+            nHincoinNInitiated = true;
+        }
         return minNfactor;
     }
-    if(pindexLast->nHeight - nHincoinLastNBlockHeight >= hoursWorthOfBlocks)
+    
+    if(pindexLast->nHeight - nHincoinLastNBlockHeight >= hoursWorthOfBlocks) 
     {
         
         printf("Le N here\n");
@@ -1331,7 +1349,8 @@ unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
 
 
 
-// legacy diff-mode
+// legacy diff-mode -- will be commented
+/*
 unsigned int static GetNextWorkRequired_V1(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
 {
     unsigned int nProofOfWorkLimit = bnProofOfWorkLimit.GetCompact();
@@ -1401,7 +1420,7 @@ unsigned int static GetNextWorkRequired_V1(const CBlockIndex* pindexLast, const 
     return bnNew.GetCompact();
 }
 
-
+*/
 
 
 
