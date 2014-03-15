@@ -1279,10 +1279,7 @@ unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast2) {
         return minNfactor;
     }
     //printf("N block height: %i\n",pindexLast->nHeight);
-    if(pindexLast->nHeight % 5 == 0)
-    {
-	printf("N block height: %i\n",pindexLast->nHeight);
-    }
+   
     int hoursWorthOfBlocks = 20;
     if(pindexLast->nHeight < 20)
     {
