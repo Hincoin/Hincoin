@@ -1256,7 +1256,7 @@ unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast2) {
         if(!nHincoinNInitiated)
         {
             nHincoinHourAgoDifficulty = KimotoGravityWell(pindexLast,NULL,nTargetSpacing,hoursWorthOfBlocks,hoursWorthOfBlocks);
-            
+            printf("First time computing nHourAgo... value = %ui\n",nHincoinHourAgoDifficulty);
             nHincoinNInitiated = true;
         }
         return minNfactor;
@@ -1270,6 +1270,8 @@ unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast2) {
    //     nHincoinLastUpdateTime = nTimestamp;
         unsigned int thisDifficulty = KimotoGravityWell(pindexLast,NULL,nTargetSpacing,hoursWorthOfBlocks,hoursWorthOfBlocks);
         printf("Recalculating N !\n");
+        printf("Current Diff = %ui\n",thisDifficulty);
+        printf("Old diff=%ui",nHincoinHourAgoDifficulty);
         printf("Old: %f\n",nHincoinRetargetN);
         nHincoinRetargetN = nHincoinRetargetN + alpha * (thisDifficulty - nHincoinHourAgoDifficulty);
         printf("New: %f\n",nHincoinRetargetN);
