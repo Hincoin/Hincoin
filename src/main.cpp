@@ -1267,7 +1267,7 @@ int getRfactor(int64 nTimestamp, const CBlockIndex* pindexLast2)
         nHincoinWeekAgoRDifficulty = nHincoinRetargetR;
         
     }
-    printf("Outside R loop\n");
+   // printf("Outside R loop\n");
     return min(max((int)nHincoinRetargetR,minRfactor),maxRfactor);
     
 }
@@ -1276,6 +1276,7 @@ unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast2) {
     const CBlockIndex* pindexLast = nHincoinLastMined;
     if(pindexLast == NULL || pindexLast2 ==NULL)
     {
+        
         return minNfactor;
     }
     //printf("N block height: %i\n",pindexLast->nHeight);
@@ -1287,6 +1288,7 @@ unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast2) {
         {
             nHincoinHourAgoDifficulty = nHincoinGetDifficulty(pindexLast);
             printf("First time computing nHourAgo... value = %f\n",nHincoinHourAgoDifficulty);
+            nHincoinRetargetN = 10;
             nHincoinNInitiated = true;
         }
         return minNfactor;
@@ -1310,7 +1312,7 @@ unsigned char GetNfactor(int64 nTimestamp,const CBlockIndex* pindexLast2) {
    
       
     }
-    printf("Outside N loop\n");
+   // printf("Outside N loop\n");
     int n = (int) nHincoinRetargetN;
     return min(max( (unsigned char) n, minNfactor),maxNfactor);
     /*int l = 0;
